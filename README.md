@@ -84,32 +84,32 @@ driver. Source patch and build steps are in `src/bc250-unlock-driver`.
 
 ## USB
 
-No map exists for this board, so none is shipped. The rear I/O is 4 ports (2x USB 3.0, 2x USB 2.0) with no internal
-headers. The FCH carries one XHCI (1022:7814 at 00:10.0: 2 USB 2 + 2 USB 3 ports) and two EHCI (1022:7808 at 00:12.2
-and 00:13.2) with OHCI companions (1022:7807 at 00:12.0/00:13.0, 1022:7809 at 00:14.5), per the
-[linux-hardware.org probe](http://linux-hardware.org/?probe=1cf286ab87).
+The rear I/O is 4 ports (2x USB 3.0, 2x USB 2.0) with no internal headers. The FCH carries one XHCI (1022:7814 at
+00:10.0: 2 USB 2 + 2 USB 3 ports) and two EHCI (1022:7808 at 00:12.2 and 00:13.2) with OHCI companions (1022:7807 at
+00:12.0/00:13.0, 1022:7809 at 00:14.5), per the [linux-hardware.org probe](http://linux-hardware.org/?probe=1cf286ab87).
 
-Current state: `UTBDefault.kext` is USBToolBox's empty placeholder (no ports defined), XHCI0 is off in the BIOS, and
-only the USB 2.0 ports work.
+`UTBDefault.kext` attaches USBToolBox to every USB controller without a map, so every port macOS can see already
+works: 4 ports never reach the 15-port limit. A map would only add connector types. The USB 3.0 ports are dead because
+XHCI0 is off in the BIOS, not because they aren't mapped.
 
-Caveat: macOS dropped its OHCI driver in Ventura (EHCI stays), so full- and low-speed devices may not enumerate on
-ports that hand them to an OHCI companion. Most 2.4 GHz mouse/keyboard receivers run at 12 Mbps, so if one doesn't
-show up in a USB 2.0 port that is the likely reason, and the fix is a mapped XHCI. Not verified on this board yet.
+Caveat, not verified on this board: macOS dropped its OHCI driver in Ventura (EHCI stays). Full- and low-speed
+devices, which includes most 2.4 GHz mouse/keyboard receivers (12 Mbps), are handed to an OHCI companion on the EHCI
+ports and may not show up in macOS. Linux shows where a device lands: in `lsusb -t`, a receiver under `ohci-pci` at
+`12M` won't work on that port in macOS. On the XHCI ports every speed is handled by the XHCI itself.
 
-To map, with [USBToolBox](https://github.com/USBToolBox/tool):
+The BC-250 doesn't boot Windows, so USBToolBox's recommended Windows route isn't available. To get the USB 3.0 ports:
 
-1. Boot Windows on the BC-250 (or WinPE) and run USBToolBox's Windows tool.
-2. Discover ports by plugging a USB 2 and a USB 3 device into every rear port, plus a keyboard/mouse for the USB 1.1
-   companions (per USBToolBox's README). Do it once with XHCI0 disabled and once with it enabled.
-3. Select the ports and build `UTBMap.kext`.
-4. Put `UTBMap.kext` in `EFI/OC/Kexts`, add it to `config.plist` under `Kernel > Add` after `USBToolBox.kext`, and
-   remove `UTBDefault.kext` (its entry and folder), as USBToolBox's README says.
-5. Try XHCI0 enabled in the BIOS. If macOS hangs at boot with it on, boot with `-v` to see where, then turn it back
-   off.
-6. Keep `XhciPortLimit` off. It has been broken since macOS 11.3 (per USBToolBox's README).
+1. In Linux, record the layout: `lspci -nn | grep -i usb`, then `lsusb -t` with a USB 2 and a USB 3 device plugged
+   into each port in turn.
+2. Enable XHCI0 in the BIOS and boot macOS with `-v`. If it hangs, photograph the last lines and turn XHCI0 back off.
+3. If it boots, the USB 3.0 ports already work through `UTBDefault.kext`. To map them anyway, run the macOS version of
+   the [USBToolBox tool](https://github.com/USBToolBox/tool) (its port-limit problems don't apply to 4 ports): plug a
+   USB 2 and a USB 3 device into every port, build `UTBMap.kext`, add it to `config.plist` under `Kernel > Add` after
+   `USBToolBox.kext`, and remove `UTBDefault.kext` (its entry and folder).
+4. Keep `XhciPortLimit` off. It has been broken since macOS 11.3 (per USBToolBox's README).
 
 Wireless Razer/Logitech receivers work as plain USB HID. Razer Synapse for Mac only runs on Apple silicon, so set
-DPI/RGB/macros from Windows and save them to the device's onboard memory if it has it.
+DPI/RGB/macros on another PC and save them to the device's onboard memory if it has it.
 
 ## What's in it
 
