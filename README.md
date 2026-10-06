@@ -14,7 +14,7 @@ OpenCore 1.0.8 RELEASE, macOS Tahoe 26.7.1, MacPro7,1 SMBIOS.
 | VRAM | 4 GB (BIOS setting below) |
 | Ethernet | Works (RealtekRTL8111) |
 | NVMe | Works |
-| USB | USB 2.0 ports only. Not mapped yet, XHCI0 has to be off in the BIOS |
+| USB | USB 2.0 ports only. Not mapped yet, XHCI0 has to be off in the BIOS. See [USB](#usb) |
 | Audio | None. No HDMI/DP audio yet, and the board has no analog codec |
 | Video decode | Software only (VCN isn't usable on this chip) |
 | Sleep | Not tested |
@@ -82,6 +82,35 @@ patches back to `06` and power off once.
 The driver is [Hexxeh/bc250-efi-core-unlock](https://github.com/Hexxeh/bc250-efi-core-unlock) built as an OpenCore
 driver. Source patch and build steps are in `src/bc250-unlock-driver`.
 
+## USB
+
+No map exists for this board, so none is shipped. The rear I/O is 4 ports (2x USB 3.0, 2x USB 2.0) with no internal
+headers. The FCH carries one XHCI (1022:7814 at 00:10.0: 2 USB 2 + 2 USB 3 ports) and two EHCI (1022:7808 at 00:12.2
+and 00:13.2) with OHCI companions (1022:7807 at 00:12.0/00:13.0, 1022:7809 at 00:14.5), per the
+[linux-hardware.org probe](http://linux-hardware.org/?probe=1cf286ab87).
+
+Current state: `UTBDefault.kext` is USBToolBox's empty placeholder (no ports defined), XHCI0 is off in the BIOS, and
+only the USB 2.0 ports work.
+
+Caveat: macOS dropped its OHCI driver in Ventura (EHCI stays), so full- and low-speed devices may not enumerate on
+ports that hand them to an OHCI companion. Most 2.4 GHz mouse/keyboard receivers run at 12 Mbps, so if one doesn't
+show up in a USB 2.0 port that is the likely reason, and the fix is a mapped XHCI. Not verified on this board yet.
+
+To map, with [USBToolBox](https://github.com/USBToolBox/tool):
+
+1. Boot Windows on the BC-250 (or WinPE) and run USBToolBox's Windows tool.
+2. Discover ports by plugging a USB 2 and a USB 3 device into every rear port, plus a keyboard/mouse for the USB 1.1
+   companions (per USBToolBox's README). Do it once with XHCI0 disabled and once with it enabled.
+3. Select the ports and build `UTBMap.kext`.
+4. Put `UTBMap.kext` in `EFI/OC/Kexts`, add it to `config.plist` under `Kernel > Add` after `USBToolBox.kext`, and
+   remove `UTBDefault.kext` (its entry and folder), as USBToolBox's README says.
+5. Try XHCI0 enabled in the BIOS. If macOS hangs at boot with it on, boot with `-v` to see where, then turn it back
+   off.
+6. Keep `XhciPortLimit` off. It has been broken since macOS 11.3 (per USBToolBox's README).
+
+Wireless Razer/Logitech receivers work as plain USB HID. Razer Synapse for Mac only runs on Apple silicon, so set
+DPI/RGB/macros from Windows and save them to the device's onboard memory if it has it.
+
 ## What's in it
 
 - **Kexts:** Lilu, RestrictEvents (CPU name), VirtualSMC, AMDRyzenCPUPowerManagement + SMCAMDProcessor, NVMeFix,
@@ -96,7 +125,7 @@ driver. Source patch and build steps are in `src/bc250-unlock-driver`.
 
 - **No HDMI/DP audio.** Safari and the TV app won't play video without an audio output device. A virtual one
   (BlackHole etc.) works around it.
-- **USB isn't mapped.** XHCI0 is off in the BIOS and only the USB 2.0 ports are used.
+- **USB isn't mapped.** XHCI0 is off in the BIOS and only the USB 2.0 ports are used. See [USB](#usb).
 - **Panic at shutdown/restart.** WindowServer panics while the display goes down (`IOAccelDisplayMachine::
   display_mode_did_change: AMDRadeonAccelerator driver returns false`). The next boot is fine.
 - **No GPU recovery.** If the GPU ever hangs, the screen freezes until a reboot (Navi 10's reset hangs this GPU, so it
