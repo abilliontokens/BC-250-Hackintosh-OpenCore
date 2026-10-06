@@ -29,8 +29,8 @@ OpenCore 1.0.8 RELEASE, macOS Tahoe 26.7.1, MacPro7,1 SMBIOS.
 
 - **UMA frame buffer size: 4 GB.** With the default 512 MB the GPU runs out of VRAM and the screen freezes green.
 - **IOMMU: Disabled.**
-- **XHCI0: Disabled.** Until the USB ports are mapped, only the other controller is used. The ports on XHCI0 stop
-  working, so plug the keyboard, mouse and USB stick into the USB 2.0 ports.
+- **XHCI0: Disabled.** The ports on XHCI0 (the USB 3.0 ports) stop working, so plug the keyboard, mouse and USB
+  stick into the USB 2.0 ports. See [USB](#usb) for trying it enabled.
 
 ### SMBIOS
 
