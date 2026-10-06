@@ -101,9 +101,10 @@ several minutes — Linux needed a DP spread-spectrum fix for that on this chip.
 The spoof only gets the driver to attach. AppleGFXHDA builds its codec objects from a table that may not know this
 codec (then no output appears even though the controller is attached), and it pairs the audio with the display by
 the `HDAU` node name, which OpenCore properties can't set. If the controller attaches but nothing shows up in Sound,
-the fix is in MetalCyan (an AppleGFXHDA personality for 13FF plus NootedRed-style codec forcing and the `HDAU`
-rename); don't combine that with this spoof. To report results, include `ioreg -w0 -l -c AppleGFXHDAEGController`
-and, from Linux, `cat /proc/asound/card*/codec#*`.
+use the MetalCyan build from [MetalCyan draft PR #3](https://github.com/amethyst8118/MetalCyan/pull/3) (an
+AppleGFXHDA personality for 13FF plus NootedRed-style codec forcing and the `HDAU` rename) and keep this entry
+disabled. To report results, include `ioreg -w0 -l -c AppleGFXHDAEGController` and, from Linux,
+`cat /proc/asound/card*/codec#*`.
 
 ## What's in it
 
