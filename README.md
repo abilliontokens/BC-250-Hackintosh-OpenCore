@@ -107,7 +107,10 @@ The BC-250 doesn't boot Windows, so USBToolBox's recommended Windows route isn't
    itself but gives the firmware only 100 ms and then gives up, unlike Linux. Look for
    `unable to obtain controller ownership from BIOS` with
    `log show --last boot --predicate 'process == "kernel"' | grep -i -E 'xhci|ownership'`; if it is there, set
-   `UEFI > Quirks > ReleaseUsbOwnership` to true and retry.
+   `UEFI > Quirks > ReleaseUsbOwnership` to true and retry. If the message persists, also enable the disabled
+   `Kernel > Patch` entry `AppleUSBXHCI: BIOS handoff timeout 100 ms -> 1000 ms` (26.x only; it gives the firmware
+   1 s like Linux; it does not force anything, the driver still fails cleanly if the firmware never lets go).
+   It was checked against 26.7.1's AppleUSBXHCI (exactly one match).
 4. If it hangs at boot, photograph the last lines and turn XHCI0 off again.
 5. Once it works, the USB 3.0 ports already work through `UTBDefault.kext`. To map them anyway, run the macOS version
    of the [USBToolBox tool](https://github.com/USBToolBox/tool) (its port-limit problems don't apply to 4 ports):
@@ -125,6 +128,7 @@ DPI/RGB/macros on another PC and save them to the device's onboard memory if it 
 - **Kernel patches:** AMD_Vanilla, with the 26.4+ fixes from AMD_Vanilla PR
   [#215](https://github.com/AMD-OSX/AMD_Vanilla/pull/215), plus one more for Tahoe. The BC-250 reports CPUID model
   0x47, which Tahoe takes for an Intel Broadwell and starts XCPM on; the `_xcpm_bootstrap` patch forces it off.
+  Also included, disabled: an `AppleUSBXHCI` handoff-timeout patch (100 ms -> 1000 ms, 26.x only); see [USB](#usb).
 - **CPU name:** set with RestrictEvents' `revcpuname` (NVRAM `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102`).
 - **Drivers:** OpenRuntime, HfsPlus, ResetNvramEntry, bc250-unlock-driver (disabled).
 
