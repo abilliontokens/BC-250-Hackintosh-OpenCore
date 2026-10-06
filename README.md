@@ -99,14 +99,21 @@ ports and may not show up in macOS. Linux shows where a device lands: in `lsusb 
 
 The BC-250 doesn't boot Windows, so USBToolBox's recommended Windows route isn't available. To get the USB 3.0 ports:
 
-1. In Linux, record the layout: `lspci -nn | grep -i usb`, then `lsusb -t` with a USB 2 and a USB 3 device plugged
-   into each port in turn.
-2. Enable XHCI0 in the BIOS and boot macOS with `-v`. If it hangs, photograph the last lines and turn XHCI0 back off.
-3. If it boots, the USB 3.0 ports already work through `UTBDefault.kext`. To map them anyway, run the macOS version of
-   the [USBToolBox tool](https://github.com/USBToolBox/tool) (its port-limit problems don't apply to 4 ports): plug a
-   USB 2 and a USB 3 device into every port, build `UTBMap.kext`, add it to `config.plist` under `Kernel > Add` after
-   `USBToolBox.kext`, and remove `UTBDefault.kext` (its entry and folder).
-4. Keep `XhciPortLimit` off. It has been broken since macOS 11.3 (per USBToolBox's README).
+1. In Linux, record the baseline: `lspci -nn | grep -i usb` and `lspci -vvv -s 00:10.0` (check the MSI capability),
+   `dmesg | grep -i -E 'xhci|handoff'`, then `lsusb -t` with a USB 2 and a USB 3 device plugged into each port in
+   turn.
+2. Enable XHCI0 in the BIOS and boot macOS with `-v`.
+3. If it boots but the USB 3.0 ports stay dead, check for a failed ownership handoff: Apple's driver does the handoff
+   itself but gives the firmware only 100 ms and then gives up, unlike Linux. Look for
+   `unable to obtain controller ownership from BIOS` with
+   `log show --last boot --predicate 'process == "kernel"' | grep -i -E 'xhci|ownership'`; if it is there, set
+   `UEFI > Quirks > ReleaseUsbOwnership` to true and retry.
+4. If it hangs at boot, photograph the last lines and turn XHCI0 off again.
+5. Once it works, the USB 3.0 ports already work through `UTBDefault.kext`. To map them anyway, run the macOS version
+   of the [USBToolBox tool](https://github.com/USBToolBox/tool) (its port-limit problems don't apply to 4 ports):
+   plug a USB 2 and a USB 3 device into every port, build `UTBMap.kext`, add it to `config.plist` under
+   `Kernel > Add` after `USBToolBox.kext`, and remove `UTBDefault.kext` (its entry and folder).
+6. Keep `XhciPortLimit` off. It has been broken since macOS 11.3 (per USBToolBox's README).
 
 Wireless Razer/Logitech receivers work as plain USB HID. Razer Synapse for Mac only runs on Apple silicon, so set
 DPI/RGB/macros on another PC and save them to the device's onboard memory if it has it.
