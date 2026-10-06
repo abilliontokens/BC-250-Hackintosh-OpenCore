@@ -98,6 +98,13 @@ What to check: `ioreg -l -w0 | grep -i -A6 GFXHDA` shows AppleGFXHDAEGController
 in System Settings > Sound; test HDMI via adapter and DP. Watch for audio drifting out of sync on DP over
 several minutes — Linux needed a DP spread-spectrum fix for that on this chip.
 
+The spoof only gets the driver to attach. AppleGFXHDA builds its codec objects from a table that may not know this
+codec (then no output appears even though the controller is attached), and it pairs the audio with the display by
+the `HDAU` node name, which OpenCore properties can't set. If the controller attaches but nothing shows up in Sound,
+the fix is in MetalCyan (an AppleGFXHDA personality for 13FF plus NootedRed-style codec forcing and the `HDAU`
+rename); don't combine that with this spoof. To report results, include `ioreg -w0 -l -c AppleGFXHDAEGController`
+and, from Linux, `cat /proc/asound/card*/codec#*`.
+
 ## What's in it
 
 - **Kexts:** Lilu, RestrictEvents (CPU name), VirtualSMC, AMDRyzenCPUPowerManagement + SMCAMDProcessor, NVMeFix,
